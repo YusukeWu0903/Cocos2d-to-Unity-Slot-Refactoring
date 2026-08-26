@@ -1,0 +1,18 @@
+{
+    "name": "Slot.Game.Editor",
+    "rootNamespace": "Slot.EditorTools",
+    "references": [
+        "Slot.Game"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
