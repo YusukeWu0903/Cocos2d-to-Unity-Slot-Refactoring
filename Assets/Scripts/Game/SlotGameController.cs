@@ -29,10 +29,20 @@ namespace Slot.Game
         private bool spinning;
         private System.Random rng = new System.Random();
         private Coroutine highlightRoutine;
+        private Image spinImg;                    // SPIN 按鈕的 Image（換圖用）
+        private Sprite spinNormalSprite;          // spin01：藍色 SPIN
+        private Sprite spinStopSprite;            // spin02：粉紅色 STOP
 
         private void Start()
         {
-            if (spinButton != null) spinButton.onClick.AddListener(OnSpinClicked);
+            if (spinButton != null)
+            {
+                spinButton.onClick.AddListener(OnSpinClicked);
+                spinImg = spinButton.GetComponent<Image>();
+                spinNormalSprite = Resources.Load<Sprite>("Sprites/ui/slot_BTN_unite_spin01");
+                spinStopSprite = Resources.Load<Sprite>("Sprites/ui/slot_BTN_unite_spin02");
+                if (spinImg != null && spinNormalSprite != null) spinImg.sprite = spinNormalSprite;
+            }
             if (moneyUp != null) moneyUp.onClick.AddListener(() => ChangeBet(1, ref Money));
             if (moneyDown != null) moneyDown.onClick.AddListener(() => ChangeBet(-1, ref Money));
             if (branchUp != null) branchUp.onClick.AddListener(() => ChangeBet(1, ref Branch));
@@ -50,34 +60,60 @@ namespace Slot.Game
 
         private void OnSpinClicked()
         {
-            if (spinning) return;
+            if (spinning)
+            {
+                // 滾動中再按 = STOP：全輪緩衝煞車、一起滑停（非暴力瞬停）
+                foreach (var r in reels) if (r != null && !r.IsBraking) r.BeginBrake();
+                return;
+            }
             spinning = true;
             if (highlightRoutine != null) { StopCoroutine(highlightRoutine); highlightRoutine = null; }
             if (lineHighlight != null) lineHighlight.gameObject.SetActive(false);
             if (resultText) resultText.text = "";
+            SetSpinButtonSprite(true);   // → 粉紅 STOP
             StartCoroutine(SpinRoutine());
+        }
+
+        /// <summary>spinning=true 顯示 STOP（spin02），false 顯示 SPIN（spin01）。</summary>
+        private void SetSpinButtonSprite(bool toStop)
+        {
+            if (spinImg == null) return;
+            var sp = toStop ? spinStopSprite : spinNormalSprite;
+            if (sp != null) spinImg.sprite = sp;
         }
 
         private IEnumerator SpinRoutine()
         {
-            // 1) 決定最終 20 格結果（cells[1..20]，col-major：col*4+row+1）
-            var final = new SymbolId[21];
-            for (int i = 1; i <= 20; i++) final[i] = (SymbolId)rng.Next(1, 11);
-
-            // 2) 全軸開始捲動
+            // 1) 全軸開始捲動（無預定結果；符號由捲動過程隨機決定，WYSIWYG）
             foreach (var r in reels) if (r != null) r.StartScroll();
             yield return new WaitForSeconds(0.9f);
 
-            // 3) 由左至右逐軸停（階梯停輪，對應原始 LengthwaysSpeed）
-            for (int col = 0; col < 5; col++)
+            // 2) 由左至右逐軸緩衝煞車（階梯停輪；STOP 急停時全部已在煞車中，此處自動跳過）
+            foreach (var r in reels)
             {
-                var colSymbols = new SymbolId[4];
-                for (int row = 0; row < 4; row++) colSymbols[row] = final[col * 4 + row + 1];
-                if (reels[col] != null) reels[col].StopAndSnap(colSymbols);
+                if (r != null && !r.IsBraking) r.BeginBrake();
                 yield return new WaitForSeconds(0.22f);
             }
 
-            // 4) 判賞
+            // 3) 等全部輪完全落定（煞車結束）
+            while (true)
+            {
+                bool allIdle = true;
+                foreach (var r in reels) if (r != null && !r.IsIdle) { allIdle = false; break; }
+                if (allIdle) break;
+                yield return null;
+            }
+
+            // 4) 從畫面「實際停著的符號」讀結果（WYSIWYG：看到什麼判什麼）
+            var final = new SymbolId[21];
+            for (int col = 0; col < 5; col++)
+            {
+                if (reels[col] == null) continue;
+                var vis = reels[col].GetVisibleSymbols();
+                for (int row = 0; row < 4; row++) final[col * 4 + row + 1] = vis[row];
+            }
+
+            // 5) 判賞
             var wins = PaylineEvaluator.EvaluateAll(final, Branch * 6);
             Debug.Log($"[Slot] spin done, {wins.Count} winning lines");
 
@@ -87,7 +123,7 @@ namespace Slot.Game
                 foreach (var w in wins) sb.Append($"\nLine{w.LineId}: {w.Count}x {w.Symbol}");
                 if (resultText) resultText.text = sb.ToString();
 
-                // 5) 中獎線高亮：輪流框選每條中獎線的格子
+                // 6) 中獎線高亮：輪流框選每條中獎線的格子
                 if (lineHighlight != null && reels[0] != null)
                     highlightRoutine = StartCoroutine(HighlightWins(wins));
             }
@@ -96,6 +132,7 @@ namespace Slot.Game
                 if (resultText) resultText.text = "未中獎";
             }
 
+            SetSpinButtonSprite(false);  // → 藍色 SPIN
             spinning = false;
         }
 
@@ -112,13 +149,12 @@ namespace Slot.Game
                     {
                         int cell = line.Cells[i];              // 1..20
                         int col = (cell - 1) / 4, row = (cell - 1) % 4;
-                        var icon = reels[col].GetVisibleIcon(row);
-                        rt.sizeDelta = icon.rectTransform.sizeDelta + new Vector2(10, 10);
-                        // icon 在欄 local，換算到高亮 parent（同一 reel area）座標
-                        var colRt = icon.transform.parent as RectTransform;
-                        Vector2 localPos = icon.rectTransform.anchoredPosition;
-                        Vector2 colPos = colRt != null ? colRt.anchoredPosition : Vector2.zero;
-                        rt.anchoredPosition = colPos + localPos;
+                        // ✅ 高亮改用「確定格位座標」對位：欄 x + SlotY[row]，
+                        //    不依賴停輪後 icon 陣列順序（icons 索引 ≠ 可視列）。
+                        var colRt = (RectTransform)reels[col].transform;
+                        Vector2 colPos = colRt.anchoredPosition;
+                        rt.anchoredPosition = new Vector2(colPos.x, colPos.y + ReelColumn.SlotY[row]);
+                        rt.sizeDelta = new Vector2(ReelColumn.CellW - 4f, ReelColumn.CellH - 4f);
                         lineHighlight.gameObject.SetActive(true);
                         yield return new WaitForSeconds(0.35f);
                     }
