@@ -70,8 +70,8 @@ namespace Slot.Game
         }
         public void BeginSpin()
         {
-            spinning=true;rulePanel.SetActive(false);
-            pathLabel.text=$"已啟用 {activeLines} 條線";
+            spinning=true;showPreview=false;rulePanel.SetActive(false);
+            Preview();
             summary.text="轉輪中…";detail.text="按 STOP 可提早緩停。\n五軸停穩後，\n才會判定結果。";
             path.Show(1,5,false,false,Cyan);
             showPaths.interactable=previous.interactable=next.interactable=rules.interactable=false;
@@ -82,7 +82,7 @@ namespace Slot.Game
             showPaths.interactable=previous.interactable=next.interactable=rules.interactable=true;
             for(int i=0;i<choices.Length;i++)choices[i].interactable=i<activeLines;
             if(wins.Count==0)
-            {summary.text="本次未中獎";detail.text="須從最左軸開始，\n沿啟用線連續出現\n至少三個相符圖案。";Preview();}
+            {showPreview=false;summary.text="本次未中獎";detail.text="須從最左軸開始，\n沿啟用線連續出現\n至少三個相符圖案。";Preview();}
             else {summary.text=$"命中 {wins.Count} 條線";ShowWin(wins[0],0,wins.Count);}
         }
         public void ShowWin(WinResult win,int index,int total)

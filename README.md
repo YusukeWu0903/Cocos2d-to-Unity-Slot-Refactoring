@@ -30,6 +30,8 @@ Cocos2d-x Quick Lua 水果機的 Unity 重構原型。此獨立分支使用 Unit
 
 在 PowerShell 自動化中請使用 `Start-Process -WindowStyle Hidden -PassThru` 並等待 ExitCode；GUI exe 的呼叫返回不等於建置完成。輸出必須是不存在的新資料夾。建置器保留既有輸出及快取；非開發版使用 gzip，伺服器需正確傳送 Content-Encoding 及 Wasm MIME。
 
+若只修改執行期程式而沒有改排版，可加 `-slotReuseScene true` 沿用已儲存的展示場景，避免重建場景；未提供此參數時維持原有重建流程。
+
 本機比較伺服器：`python D:/Codex/visualizations/2026-11-05/unity-slot-upgrade/review_server.py`，開啟 http://127.0.0.1:8121/ 。保留舊版切換，一次只載入一個遊戲。
 
 ## 程式位置

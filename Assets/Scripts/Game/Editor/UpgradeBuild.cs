@@ -36,7 +36,9 @@ namespace Slot.EditorTools
                 bool presentation = Argument("-slotScene") == "presentation";
                 if (presentation)
                 {
-                    PresentationSceneBuilder.Build();
+                    if (Argument("-slotReuseScene") != "true") PresentationSceneBuilder.Build();
+                    else if (!File.Exists(Path.Combine(Application.dataPath, "Scenes/SlotPresentation.unity")))
+                        throw new FileNotFoundException("The saved presentation scene is missing.");
                     PlayerSettings.defaultWebScreenWidth = 1024;
                     PlayerSettings.defaultWebScreenHeight = 720;
                     PlayerSettings.WebGL.template = "PROJECT:Portfolio";

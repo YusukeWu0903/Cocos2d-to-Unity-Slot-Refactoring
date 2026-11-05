@@ -1,6 +1,8 @@
 #if UNITY_EDITOR
 using System.Collections;
 using System.Linq;
+using System.Reflection;
+using Slot.Core;
 using NUnit.Framework;
 using Slot.Game;
 using UnityEditor.SceneManagement;
@@ -17,6 +19,41 @@ namespace Slot.Tests
         [UnityTearDown] public IEnumerator Cleanup()
         {
             if (scene.IsValid() && scene.isLoaded) yield return SceneManager.UnloadSceneAsync(scene);
+        }
+        private static int RenderedVertices(PaylineGraphic graphic)
+        {
+            using (var vertices=new VertexHelper())
+            {
+                typeof(PaylineGraphic).GetMethod("OnPopulateMesh",BindingFlags.Instance|BindingFlags.NonPublic,null,new[] { typeof(VertexHelper) },null)
+                    .Invoke(graphic,new object[] {vertices});
+                return vertices.currentVertCount;
+            }
+        }
+        [UnityTest] public IEnumerator LosingRoundClearsManualPreviewUntilExplicitlyRequestedAgain()
+        {
+            scene=EditorSceneManager.LoadSceneInPlayMode("Assets/Scenes/SlotPresentation.unity",new LoadSceneParameters(LoadSceneMode.Additive));
+            yield return null;
+            var roots=scene.GetRootGameObjects();
+            var canvas=roots.Single(o=>o.name=="Canvas").transform;
+            var presentation=roots.Single(o=>o.name=="SlotRoot").GetComponent<SlotPresentation>();
+            var toggle=canvas.Find("TogglePaths").GetComponent<Button>();
+            var graphic=canvas.Find("ReelArea/PaylineOverlay").GetComponent<PaylineGraphic>();
+            Assert.AreEqual(0,RenderedVertices(graphic));
+            toggle.onClick.Invoke();
+            Assert.Greater(RenderedVertices(graphic),0,"Precondition: manual preview must actually draw a path.");
+            presentation.BeginSpin();
+            Assert.AreEqual(0,RenderedVertices(graphic));
+            Assert.AreEqual("查看路徑",toggle.GetComponentInChildren<Text>().text);
+            presentation.FinishSpin(System.Array.Empty<WinResult>());
+            Assert.AreEqual("本次未中獎",canvas.Find("StatusPanel/Summary").GetComponent<Text>().text);
+            Assert.AreEqual(0,RenderedVertices(graphic),"A loss must not restore the earlier blue preview.");
+            Assert.AreEqual("已啟用 8 條線",canvas.Find("PathLabel").GetComponent<Text>().text);
+            toggle.onClick.Invoke();
+            Assert.Greater(RenderedVertices(graphic),0,"Manual preview must still work after a loss.");
+            presentation.BeginSpin();
+            presentation.FinishSpin(new[] { new WinResult(4,3,SymbolId.S1,true) });
+            Assert.Greater(RenderedVertices(graphic),0,"Winning lines must remain visible.");
+            StringAssert.Contains("中獎線 04",canvas.Find("PathLabel").GetComponent<Text>().text);
         }
         [UnityTest] public IEnumerator AuthoredSceneShowsChineseRulesFortyLinesAndCompletesStopBurst()
         {
