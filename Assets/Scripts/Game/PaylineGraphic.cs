@@ -37,15 +37,27 @@ namespace Slot.Game
                     Quad(vh,p+new Vector2(-1.5f,-1.5f),p+new Vector2(1.5f,1.5f),new Color(.5f,.6f,.7f,.35f));
                 }
             int count = Mathf.Clamp(matched,1,5);
-            for (int i=1;i<count;i++) Segment(vh,Point(line.Cells[i-1]),Point(line.Cells[i]),reelOverlay?3:2,color);
-            if (outlineMatches && reelOverlay)
-                for (int i=0;i<count;i++)
+            // One dark outer pass keeps the thicker path readable over bright fruit.
+            // The small rule diagrams use a plain stroke to retain their spacing.
+            if(reelOverlay)
+            {
+                DrawPath(vh,line.Cells,count,7,6,new Color(.06f,.045f,.08f,.72f));
+                var ink=color;ink.a=1;
+                DrawPath(vh,line.Cells,count,5,4,ink);
+            }
+            else DrawPath(vh,line.Cells,count,3,0,color);
+        }
+        private void DrawPath(VertexHelper vh,int[] cells,int count,float lineWidth,float frameWidth,Color tint)
+        {
+            for(int i=1;i<count;i++)Segment(vh,Point(cells[i-1]),Point(cells[i]),lineWidth,tint);
+            if(outlineMatches&&reelOverlay)
+                for(int i=0;i<count;i++)
                 {
-                    var p=Point(line.Cells[i]); var w=ReelColumn.CellW/2-3; var h=ReelColumn.CellH/2-3;
-                    Segment(vh,p+new Vector2(-w,-h),p+new Vector2(w,-h),3,color);
-                    Segment(vh,p+new Vector2(w,-h),p+new Vector2(w,h),3,color);
-                    Segment(vh,p+new Vector2(w,h),p+new Vector2(-w,h),3,color);
-                    Segment(vh,p+new Vector2(-w,h),p+new Vector2(-w,-h),3,color);
+                    var p=Point(cells[i]);var w=ReelColumn.CellW/2-3;var h=ReelColumn.CellH/2-3;
+                    Segment(vh,p+new Vector2(-w,-h),p+new Vector2(w,-h),frameWidth,tint);
+                    Segment(vh,p+new Vector2(w,-h),p+new Vector2(w,h),frameWidth,tint);
+                    Segment(vh,p+new Vector2(w,h),p+new Vector2(-w,h),frameWidth,tint);
+                    Segment(vh,p+new Vector2(-w,h),p+new Vector2(-w,-h),frameWidth,tint);
                 }
         }
         private static void Segment(VertexHelper vh,Vector2 a,Vector2 b,float width,Color tint)

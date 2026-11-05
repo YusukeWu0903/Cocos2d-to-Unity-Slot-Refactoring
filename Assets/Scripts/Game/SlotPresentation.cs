@@ -79,10 +79,10 @@ namespace Slot.Game
             InspectionRequested?.Invoke();
             summary.text="支付線預覽";
             Details("每條線從左至右，\n取五軸各一格。\n連續三個以上相符，\n即為中獎。","沿線由左至右取五軸各一格，\n三個以上相符圖案即中獎。");
-            if(Cabinet)cabinetState.text="LINES";
+            if(Cabinet){cabinetState.text="LINES";cabinetMatches.text="--";}
         }
         public void SettingsChanged()
-        {summary.text="設定已更新";Details("按 SPIN 開始新的一輪。","按開始進行新的一輪。");if(Cabinet)cabinetState.text="READY";}
+        {summary.text="設定已更新";Details("按 SPIN 開始新的一輪。","按開始進行新的一輪。");if(Cabinet){cabinetState.text="READY";cabinetMatches.text="--";}}
         private void Preview()
         {
             pathLabel.text=showPreview?$"啟用線 {selected+1:00} / {activeLines}":$"已啟用 {activeLines} 條線";
