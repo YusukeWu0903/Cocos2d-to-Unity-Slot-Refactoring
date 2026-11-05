@@ -193,6 +193,7 @@ namespace Slot.EditorTools
             go.transform.SetParent(parent, false);
             var t = go.GetComponent<Text>();
             t.text = content;
+            t.raycastTarget = false; // Display text must not block controls behind it.
             t.alignment = TextAnchor.MiddleCenter;
             t.fontSize = fontSize;
             t.color = Color.white;
