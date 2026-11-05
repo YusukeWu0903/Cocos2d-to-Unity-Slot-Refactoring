@@ -43,3 +43,8 @@ WebGL模板依Unity實際回報更新進度，createUnityInstance完成後關閉
 - 最後一輪瀏覽器驗證自2026-11-05T04:58:04.416Z起，沒有新增warn/error。此tab舊頁切換時曾在04:45出現1筆MutationObserver錯誤，來源未確認；本次成品HTML/loader/framework無該名稱，沒有把整個tab歷史描述成完全無錯誤。完整紀錄fourrow-browser-review.json保留。
 - 最終實際截圖fourrow-v3-preview.jpg、fourrow-v3-rules.jpg、fourrow-v3-win.jpg位於D:/Codex/visualizations/2026-11-05/unity-slot-upgrade/。fourrow-final-verification.json、fourrow-path-audit.json、兩類XML與fourrow-build-v3.log可供追溯。
 - 比較頁http://127.0.0.1:8121/預設新版，單獨入口http://127.0.0.1:8121/unity6-fourrow-v3/。伺服器維持本機127.0.0.1。未發布作品集、未push；獨立Chrome/Edge與實體手機尚待驗證，使用者外觀接受亦待回覆。
+
+## 後續修正與機台版
+
+- 586af9b：每輪開始及未中獎時清除手動藍色預覽，不自動恢復。新增實際繪製頂點回歸後PlayMode8/8通過；功能比較成品為unity6-fourrow-v4，舊v3保留。
+- 新增獨立復古機台版，不覆蓋本場景；規格及最新驗收見[復古機台說明](RETRO-CABINET.md)。比較頁改預設機台版，仍可切回本功能版。

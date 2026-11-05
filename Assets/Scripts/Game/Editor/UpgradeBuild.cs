@@ -33,15 +33,23 @@ namespace Slot.EditorTools
                 if (Directory.Exists(output))
                     throw new IOException("Output already exists; choose a new versioned folder.");
 
-                bool presentation = Argument("-slotScene") == "presentation";
+                string sceneMode = Argument("-slotScene") ?? "original";
+                if (sceneMode != "original" && sceneMode != "presentation" && sceneMode != "cabinet")
+                    throw new ArgumentException("Unknown scene mode: " + sceneMode);
+                bool cabinet = sceneMode == "cabinet";
+                bool presentation = sceneMode != "original";
+                string scenePath = cabinet ? "Assets/Scenes/SlotCabinet.unity" : presentation ? "Assets/Scenes/SlotPresentation.unity" : "Assets/Scenes/SlotScene.unity";
                 if (presentation)
                 {
-                    if (Argument("-slotReuseScene") != "true") PresentationSceneBuilder.Build();
-                    else if (!File.Exists(Path.Combine(Application.dataPath, "Scenes/SlotPresentation.unity")))
-                        throw new FileNotFoundException("The saved presentation scene is missing.");
+                    if (Argument("-slotReuseScene") != "true")
+                    {
+                        if (cabinet) CabinetSceneBuilder.Build(); else PresentationSceneBuilder.Build();
+                    }
+                    else if (!File.Exists(Path.Combine(Application.dataPath, "Scenes/" + Path.GetFileName(scenePath))))
+                        throw new FileNotFoundException("The saved scene is missing.");
                     PlayerSettings.defaultWebScreenWidth = 1024;
-                    PlayerSettings.defaultWebScreenHeight = 720;
-                    PlayerSettings.WebGL.template = "PROJECT:Portfolio";
+                    PlayerSettings.defaultWebScreenHeight = cabinet ? 800 : 720;
+                    PlayerSettings.WebGL.template = cabinet ? "PROJECT:RetroCabinet" : "PROJECT:Portfolio";
                 }
                 bool development = profile == "development";
                 PlayerSettings.WebGL.dataCaching = false;
@@ -52,7 +60,7 @@ namespace Slot.EditorTools
                 PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.FullWithStacktrace;
                 var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
                 {
-                    scenes = new[] { presentation ? "Assets/Scenes/SlotPresentation.unity" : "Assets/Scenes/SlotScene.unity" },
+                    scenes = new[] { scenePath },
                     locationPathName = output,
                     target = BuildTarget.WebGL,
                     options = development ? BuildOptions.Development : BuildOptions.None

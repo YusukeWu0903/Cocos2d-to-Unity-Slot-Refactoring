@@ -44,7 +44,7 @@ PlayerSettings:
   defaultScreenWidth: 960
   defaultScreenHeight: 640
   defaultScreenWidthWeb: 1024
-  defaultScreenHeightWeb: 720
+  defaultScreenHeightWeb: 800
   m_StereoRenderingPath: 0
   m_ActiveColorSpace: 0
   unsupportedMSAAFallback: 0
@@ -570,7 +570,7 @@ PlayerSettings:
   webGLDebugSymbols: 0
   webGLEmscriptenArgs: 
   webGLModulesDirectory: 
-  webGLTemplate: PROJECT:Portfolio
+  webGLTemplate: PROJECT:RetroCabinet
   webGLAnalyzeBuildSize: 0
   webGLUseEmbeddedResources: 0
   webGLCompressionFormat: 1

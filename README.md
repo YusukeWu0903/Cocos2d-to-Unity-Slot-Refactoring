@@ -2,7 +2,15 @@
 
 Cocos2d-x Quick Lua 水果機的 Unity 重構原型。此獨立分支使用 Unity 6000.5.10f1，新增可試玩的四排展示場景；原 Unity 2022 專案與既有成品保留。
 
-## 本輪展示版
+## 復古機台版
+
+新增獨立 `Assets/Scenes/SlotCabinet.unity`：紫金機框、固定彩色燈泡、白色四排捲軸、兩側線號、真實回合資訊窗與大型 START／STOP 按鈕。現有水果與40線規則沿用，原功能版場景保留。
+
+[外觀、操作與驗收記錄](docs/RETRO-CABINET.md)。本機試玩 http://127.0.0.1:8121/unity6-retro-v2/ ，比較頁 http://127.0.0.1:8121/ 可切回四排功能版及早期成品。尚未發布作品集。
+
+重建機台場景：**Tools → Slot → Build Retro Fruit Cabinet**。下方建置命令的 `-slotScene presentation` 改為 `-slotScene cabinet` 即輸出機台版；`-slotReuseScene true` 可沿用已儲存場景。機台獨立模板為 `Assets/WebGLTemplates/RetroCabinet/`，內部畫布1024×800。
+
+## 四排規則與展示
 
 - 五軸、完整四排、40 條固定支付線；8／16／24／32／40 五檔，每檔都包含四排橫線。
 - 從最左軸沿啟用線連續三個以上相符圖案即中獎。
@@ -58,4 +66,4 @@ python Tools/subset_ui_font.py '<原始NotoSansTC字型.ttf>' --report '<D槽輸
 
 ## 驗證範圍
 
-本輪測試與實際瀏覽器結果記錄於 `docs/FOUR-ROW-PRESENTATION.md` 及D槽比較資料夾。內嵌瀏覽器實測、Editor測試與手機尺寸預覽，均不能代替獨立Chrome／Edge及實體手機驗證。手機建議橫向觀看，正式採用前仍需真機操作確認。
+本輪測試與實際瀏覽器結果記錄於 `docs/RETRO-CABINET.md`、`docs/FOUR-ROW-PRESENTATION.md` 及D槽比較資料夾。內嵌瀏覽器實測、Editor測試與手機尺寸預覽，均不能代替獨立Chrome／Edge及實體手機驗證。手機建議橫向觀看，正式採用前仍需真機操作確認。
