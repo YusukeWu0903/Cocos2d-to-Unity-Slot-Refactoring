@@ -1,0 +1,36 @@
+{
+  "gameSourceCommit": "31b74d7663db538ef090a10d71f578b91d333477",
+  "version": "retro-v4",
+  "files": [
+    {
+      "path": "Build/323ff317de141730adc6cb186e60b544.wasm.gz",
+      "bytes": 11129926,
+      "sha256": "6acd033577ae070c7e43dde912a3ea2496b4bc815fd8a217a202fb42a6cfeaf1"
+    },
+    {
+      "path": "Build/447ea65b7611d29b1aa00e9f17426e14.loader.js",
+      "bytes": 19670,
+      "sha256": "79bd5e7937b57d9dabd1c33c3621039300b1dbf6dc4f768953cf887c8e7bd1fc"
+    },
+    {
+      "path": "Build/bbf36ca264bc302919af240f1cfa9711.data.gz",
+      "bytes": 2801225,
+      "sha256": "142b31300bd3fbe4ccb6802a13b7e27a1f7a3b943998f050759d6c890b4b8aaf"
+    },
+    {
+      "path": "Build/ccc8ca46cf488ef822e124acb5c1e2ce.framework.js.gz",
+      "bytes": 67495,
+      "sha256": "6ed0371263cde160e7e32f1f22a76eb2039896dd17bc07fe4eb012ba6bdb83c6"
+    },
+    {
+      "path": "index.html",
+      "bytes": 3216,
+      "sha256": "7d583208b77359150619cdc3b6d1400ca2d1dd3174c210caedd8532aee3ee38c"
+    },
+    {
+      "path": "vercel.json",
+      "bytes": 2130,
+      "sha256": "003701d7b8d18f90ae229c148d10a80ac27ece69b7c70eca714901ad81fb8a67"
+    }
+  ]
+}
