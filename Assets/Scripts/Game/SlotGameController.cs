@@ -26,6 +26,8 @@ namespace Slot.Game
         public int Money = 1;
         public int Branch = 1;
 
+        [SerializeField] private SlotPresentation presentation;
+        private bool configurationValid;
         private bool spinning;
         private System.Random rng = new System.Random();
         private Coroutine highlightRoutine;
@@ -35,6 +37,14 @@ namespace Slot.Game
 
         private void Start()
         {
+            if (!ValidateReels(out var error)) { ReportConfigurationError(error); return; }
+            for (int symbol = 1; symbol <= 10; symbol++)
+                if (ReelCell.GetFruitSprite((SymbolId)symbol) == null)
+                { ReportConfigurationError($"Missing image for symbol {symbol}."); return; }
+            Money = Mathf.Clamp(Money, 1, 5);
+            Branch = Mathf.Clamp(Branch, 1, 5);
+            configurationValid = true;
+            if (presentation != null) presentation.InspectionRequested += StopHighlight;
             if (spinButton != null)
             {
                 spinButton.onClick.AddListener(OnSpinClicked);
@@ -55,11 +65,15 @@ namespace Slot.Game
         {
             if (spinning) return;
             which = Mathf.Clamp(which + delta, 1, 5);
+            StopHighlight();
             UpdateBetText();
+            if (presentation != null) presentation.SettingsChanged();
         }
 
         private void OnSpinClicked()
         {
+            if (!configurationValid) return;
+            if (!ValidateReels(out var error)) { ReportConfigurationError(error); return; }
             if (spinning)
             {
                 // 滾動中再按 = STOP：全輪緩衝煞車、一起滑停（非暴力瞬停）
@@ -71,6 +85,8 @@ namespace Slot.Game
             if (lineHighlight != null) lineHighlight.gameObject.SetActive(false);
             if (resultText) resultText.text = "";
             SetSpinButtonSprite(true);   // → 粉紅 STOP
+            if (presentation != null) presentation.BeginSpin();
+            UpdateControlState();
             StartCoroutine(SpinRoutine());
         }
 
@@ -105,26 +121,23 @@ namespace Slot.Game
             }
 
             // 4) 從畫面「實際停著的符號」讀結果（WYSIWYG：看到什麼判什麼）
-            var final = new SymbolId[21];
-            for (int col = 0; col < 5; col++)
+            if (!TryEvaluateSettledReels(out var wins, out var error))
             {
-                if (reels[col] == null) continue;
-                var vis = reels[col].GetVisibleSymbols();
-                for (int row = 0; row < 4; row++) final[col * 4 + row + 1] = vis[row];
+                ReportConfigurationError(error);
+                yield break;
             }
 
-            // 5) 判賞
-            var wins = PaylineEvaluator.EvaluateAll(final, Branch * 6);
+            // 5) 判賞：只接受完整且已對齊的實際盤面。
             Debug.Log($"[Slot] spin done, {wins.Count} winning lines");
 
             if (wins.Count > 0)
             {
-                var sb = new System.Text.StringBuilder("贏得金幣!");
+                var sb = new System.Text.StringBuilder($"命中 {wins.Count} 條線");
                 foreach (var w in wins) sb.Append($"\nLine{w.LineId}: {w.Count}x {w.Symbol}");
                 if (resultText) resultText.text = sb.ToString();
 
                 // 6) 中獎線高亮：輪流框選每條中獎線的格子
-                if (lineHighlight != null && reels[0] != null)
+                if ((lineHighlight != null || presentation != null) && reels[0] != null)
                     highlightRoutine = StartCoroutine(HighlightWins(wins));
             }
             else
@@ -134,10 +147,23 @@ namespace Slot.Game
 
             SetSpinButtonSprite(false);  // → 藍色 SPIN
             spinning = false;
+            UpdateControlState();
+            if (presentation != null) presentation.FinishSpin(wins);
         }
 
         private IEnumerator HighlightWins(IReadOnlyList<WinResult> wins)
         {
+            if (presentation != null)
+            {
+                while (true)
+                {
+                    for (int i = 0; i < wins.Count; i++)
+                    {
+                        presentation.ShowWin(wins[i], i, wins.Count);
+                        yield return new WaitForSeconds(1.8f);
+                    }
+                }
+            }
             var rt = lineHighlight.rectTransform;
             var parent = rt.parent as RectTransform;
             while (true)
@@ -162,10 +188,73 @@ namespace Slot.Game
             }
         }
 
+        private bool ValidateReels(out string error)
+        {
+            error = null;
+            if (reels == null || reels.Length != 5)
+            { error = "Exactly five reels are required."; return false; }
+            var seen = new HashSet<ReelColumn>();
+            for (int col = 0; col < reels.Length; col++)
+                if (reels[col] == null || !reels[col].IsConfigured || !seen.Add(reels[col]))
+                { error = $"Reel {col + 1} is missing, incomplete or duplicated."; return false; }
+            return true;
+        }
+
+        private bool TryEvaluateSettledReels(out IReadOnlyList<WinResult> wins, out string error)
+        {
+            wins = null;
+            if (!ValidateReels(out error)) return false;
+            try
+            {
+                var final = new SymbolId[21];
+                for (int col = 0; col < 5; col++)
+                {
+                    var visible = reels[col].GetVisibleSymbols();
+                    for (int row = 0; row < ReelColumn.Rows; row++) final[col * 4 + row + 1] = visible[row];
+                }
+                wins = PaylineEvaluator.EvaluateAll(final, Mathf.Clamp(Branch, 1, 5) * SlotPaylines.LinesPerLevel);
+                return true;
+            }
+            catch (System.ArgumentException ex) { error = ex.Message; return false; }
+            catch (System.InvalidOperationException ex) { error = ex.Message; return false; }
+        }
+
+        private void ReportConfigurationError(string error)
+        {
+            configurationValid = false;
+            spinning = false;
+            if (highlightRoutine != null) { StopCoroutine(highlightRoutine); highlightRoutine = null; }
+            if (lineHighlight != null) lineHighlight.gameObject.SetActive(false);
+            SetSpinButtonSprite(false);
+            foreach (var button in new[] { spinButton, moneyUp, moneyDown, branchUp, branchDown })
+                if (button != null) button.interactable = false;
+            if (resultText != null) resultText.text = "Game unavailable. Please reload.";
+            if (presentation != null) presentation.ShowError();
+            Debug.LogError("[Slot] Configuration error: " + error);
+        }
+
         private void UpdateBetText()
         {
-            if (betText) betText.text = $"{Money} x {Branch} = {Money * Branch}";
+            if (betText) betText.text = $"單位 {Money} · 啟用 {Branch * SlotPaylines.LinesPerLevel} 線";
+            UpdateControlState();
+            if (presentation != null) presentation.UpdateSettings(Money, Branch * SlotPaylines.LinesPerLevel);
         }
+
+        private void StopHighlight()
+        {
+            if (highlightRoutine != null) { StopCoroutine(highlightRoutine); highlightRoutine = null; }
+            if (lineHighlight != null) lineHighlight.gameObject.SetActive(false);
+        }
+
+        private void UpdateControlState()
+        {
+            if (moneyUp != null) moneyUp.interactable = configurationValid && !spinning && Money < 5;
+            if (moneyDown != null) moneyDown.interactable = configurationValid && !spinning && Money > 1;
+            if (branchUp != null) branchUp.interactable = configurationValid && !spinning && Branch < 5;
+            if (branchDown != null) branchDown.interactable = configurationValid && !spinning && Branch > 1;
+        }
+
+        public void BindPresentation(SlotPresentation view) { presentation = view; }
 
         /// <summary>由 SlotSceneBuilder 注入。</summary>
         public void BindRefs(Text bet, Text result, Button spin,

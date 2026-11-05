@@ -6,7 +6,12 @@ namespace Slot.Tests
     /// <summary>連數門檻：3/4/5 連邊界、2 連不中、斷線後續不計。</summary>
     public class CountThresholdTest
     {
-        static SymbolId[] Empty() => new SymbolId[21];
+        static SymbolId[] Empty()
+        {
+            var cells = new SymbolId[21];
+            for (int i = 1; i <= 20; i++) cells[i] = SymbolId.S10;
+            return cells;
+        }
 
         // Line2 = {3,7,11,15,19}（row2 橫排）
 

@@ -5,6 +5,8 @@ using Slot.Core;
 using Slot.Game;
 using UnityEngine;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
+using System.Text.RegularExpressions;
 
 namespace Slot.Tests
 {
@@ -51,7 +53,49 @@ namespace Slot.Tests
                 foreach (Transform child in reel.transform)
                     if (Mathf.Abs(((RectTransform)child).anchoredPosition.y - ReelColumn.SlotY[row]) < 0.1f) matching++;
                 Assert.AreEqual(1, matching, "Each visible grid cell needs exactly one icon.");
+                Assert.AreEqual(ReelCell.GetFruitSprite(symbols[row]), reel.GetVisibleIcon(row).sprite,
+                    "The visible image and evaluated symbol must agree after reel wraps.");
             }
+        }
+
+        [UnityTest]
+        public IEnumerator MissingIncompleteOrDuplicateReelsDisableSpinInsteadOfEvaluating()
+        {
+            for (int scenario = 0; scenario < 4; scenario++)
+            {
+                var reels = new ReelColumn[5];
+                for (int i = 0; i < 5; i++) reels[i] = CreateReel("guard reel " + i);
+                if (scenario == 0) reels[2] = null;
+                if (scenario == 1) reels[2] = reels[1];
+                if (scenario == 2) UnityEngine.Object.DestroyImmediate(reels[2].transform.Find("icon0").gameObject);
+                if (scenario == 3) reels = new ReelColumn[4];
+                var controlGo = new GameObject("invalid controller");
+                controlGo.transform.SetParent(root.transform);
+                var button = new GameObject("spin", typeof(RectTransform), typeof(Image), typeof(Button)).GetComponent<Button>();
+                button.transform.SetParent(controlGo.transform);
+                var message = new GameObject("error", typeof(RectTransform), typeof(Text)).GetComponent<Text>();
+                message.transform.SetParent(controlGo.transform);
+                var controller = controlGo.AddComponent<SlotGameController>();
+                controller.BindRefs(null, message, button, null, null, null, null, reels, null);
+                LogAssert.Expect(LogType.Error, new Regex(@"\[Slot\] Configuration error:"));
+                yield return null;
+                button.onClick.Invoke();
+                controller.SendMessage("OnSpinClicked");
+                Assert.IsFalse(button.interactable);
+                StringAssert.Contains("unavailable", message.text);
+                foreach (var reel in reels) if (reel != null) Assert.IsTrue(reel.IsIdle);
+                UnityEngine.Object.Destroy(controlGo);
+                yield return null;
+            }
+        }
+
+        [Test]
+        public void OffGridReelCannotFabricateAVisibleSymbol()
+        {
+            var reel = CreateReel("off grid");
+            var icon = (RectTransform)reel.transform.Find("icon1");
+            icon.anchoredPosition += new Vector2(0, 10);
+            Assert.Throws<InvalidOperationException>(() => reel.GetVisibleSymbols());
         }
 
         [UnityTest]

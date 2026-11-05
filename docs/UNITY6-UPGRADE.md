@@ -1,3 +1,7 @@
+# Historical checkpoint: bd9c4f6
+
+This report describes the initial upgrade trial. The subsequent four-row presentation changes are documented in FOUR-ROW-PRESENTATION.md; its Core and gameplay files are no longer unchanged.
+
 # Unity 6 upgrade trial
 
 This is an independent trial checkout. The original Unity 2022 project remains at D:/Project/SlotUnity.

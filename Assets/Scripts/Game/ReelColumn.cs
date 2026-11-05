@@ -60,6 +60,16 @@ namespace Slot.Game
             ids = new SymbolId[icons.Length];
         }
 
+        public bool IsConfigured
+        {
+            get
+            {
+                if (icons == null || ids == null || icons.Length != 6 || ids.Length != 6) return false;
+                foreach (var icon in icons) if (icon == null) return false;
+                return true;
+            }
+        }
+
         public bool IsScrolling => state != ReelState.Idle;
         public bool IsBraking => state == ReelState.Braking;
         public bool IsIdle => state == ReelState.Idle;
@@ -85,6 +95,8 @@ namespace Slot.Game
         /// </summary>
         public SymbolId[] GetVisibleSymbols()
         {
+            if (!IsConfigured) throw new System.InvalidOperationException("Reel is missing one or more icons.");
+            var used = new bool[icons.Length];
             var r = new SymbolId[Rows];
             for (int row = 0; row < Rows; row++)
             {
@@ -95,7 +107,10 @@ namespace Slot.Game
                     float d = Mathf.Abs(icons[i].rectTransform.anchoredPosition.y - SlotY[row]);
                     if (d < bd) { bd = d; best = i; }
                 }
-                r[row] = best >= 0 ? ids[best] : (SymbolId)1;
+                if (best < 0 || bd > 0.1f || used[best] || ids[best] < SymbolId.S1 || ids[best] > SymbolId.S10)
+                    throw new System.InvalidOperationException("Reel has no unique settled symbol at every visible cell.");
+                used[best] = true;
+                r[row] = ids[best];
             }
             return r;
         }
@@ -173,7 +188,20 @@ namespace Slot.Game
         }
 
         /// <summary>取得可視列 icon（供取位）。</summary>
-        public Image GetVisibleIcon(int row) => icons[row + 1];
+        public Image GetVisibleIcon(int row)
+        {
+            if (row < 0 || row >= Rows) throw new System.ArgumentOutOfRangeException(nameof(row));
+            if (!IsConfigured) throw new System.InvalidOperationException("Reel icons are incomplete.");
+            Image nearest = null;
+            float distance = float.MaxValue;
+            foreach (var icon in icons)
+            {
+                float current = Mathf.Abs(icon.rectTransform.anchoredPosition.y - SlotY[row]);
+                if (current < distance) { distance = current; nearest = icon; }
+            }
+            if (distance > .1f) throw new System.InvalidOperationException("Reel is not settled on its grid.");
+            return nearest;
+        }
 
         private void AssignSymbol(int i, SymbolId s)
         {

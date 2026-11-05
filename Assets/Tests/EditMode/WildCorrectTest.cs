@@ -6,7 +6,12 @@ namespace Slot.Tests
     /// <summary>Wild(ID8) 與 9/10 高賠特例測試，對應 Lua CorrectIine 的 change 邏輯。</summary>
     public class WildCorrectTest
     {
-        static SymbolId[] Empty() => new SymbolId[21];
+        static SymbolId[] Empty()
+        {
+            var cells = new SymbolId[21];
+            for (int i = 1; i <= 20; i++) cells[i] = SymbolId.S10;
+            return cells;
+        }
 
         // 直取 Line1 = {2,6,10,14,18}（row1 橫排）做 Wild 測試
 

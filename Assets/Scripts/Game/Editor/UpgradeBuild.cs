@@ -33,6 +33,14 @@ namespace Slot.EditorTools
                 if (Directory.Exists(output))
                     throw new IOException("Output already exists; choose a new versioned folder.");
 
+                bool presentation = Argument("-slotScene") == "presentation";
+                if (presentation)
+                {
+                    PresentationSceneBuilder.Build();
+                    PlayerSettings.defaultWebScreenWidth = 1024;
+                    PlayerSettings.defaultWebScreenHeight = 720;
+                    PlayerSettings.WebGL.template = "PROJECT:Portfolio";
+                }
                 bool development = profile == "development";
                 PlayerSettings.WebGL.dataCaching = false;
                 PlayerSettings.WebGL.compressionFormat = development ? WebGLCompressionFormat.Disabled : WebGLCompressionFormat.Gzip;
@@ -42,7 +50,7 @@ namespace Slot.EditorTools
                 PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.FullWithStacktrace;
                 var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
                 {
-                    scenes = new[] { "Assets/Scenes/SlotScene.unity" },
+                    scenes = new[] { presentation ? "Assets/Scenes/SlotPresentation.unity" : "Assets/Scenes/SlotScene.unity" },
                     locationPathName = output,
                     target = BuildTarget.WebGL,
                     options = development ? BuildOptions.Development : BuildOptions.None
