@@ -6,7 +6,7 @@ Cocos2d-x Quick Lua 水果機的 Unity 重構原型。此獨立分支使用 Unit
 
 新增獨立 `Assets/Scenes/SlotCabinet.unity`：紫金機框、固定彩色燈泡、白色四排捲軸、兩側線號、真實回合資訊窗與大型 START／STOP 按鈕。現有水果與40線規則沿用，原功能版場景保留。
 
-[外觀、操作與驗收記錄](docs/RETRO-CABINET.md)。本機試玩 http://127.0.0.1:8121/unity6-retro-v2/ ，比較頁 http://127.0.0.1:8121/ 可切回四排功能版及早期成品。尚未發布作品集。
+[外觀、操作與驗收記錄](docs/RETRO-CABINET.md)。[停輪疊格／缺格修正](docs/BRAKE-GRID-FIX.md)：整軸共用格點與位移，12項PlayMode通過，含100輪實際機台場景回歸。本機試玩 http://127.0.0.1:8121/unity6-retro-v3/ ，比較頁 http://127.0.0.1:8121/ 可切回四排功能版及早期成品。尚未發布作品集。
 
 重建機台場景：**Tools → Slot → Build Retro Fruit Cabinet**。下方建置命令的 `-slotScene presentation` 改為 `-slotScene cabinet` 即輸出機台版；`-slotReuseScene true` 可沿用已儲存場景。機台獨立模板為 `Assets/WebGLTemplates/RetroCabinet/`，內部畫布1024×800。
 

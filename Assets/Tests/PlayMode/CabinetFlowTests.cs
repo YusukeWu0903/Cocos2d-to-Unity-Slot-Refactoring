@@ -16,6 +16,50 @@ namespace Slot.Tests
         private Scene scene;
         [UnityTearDown] public IEnumerator Cleanup()
         {if(scene.IsValid()&&scene.isLoaded)yield return SceneManager.UnloadSceneAsync(scene);}
+        [UnityTest] public IEnumerator CabinetCompletesOneHundredMixedAutomaticAndStopRounds()
+        {
+            scene=EditorSceneManager.LoadSceneInPlayMode("Assets/Scenes/SlotCabinet.unity",new LoadSceneParameters(LoadSceneMode.Additive));
+            yield return null;
+            var canvas=scene.GetRootGameObjects().Single(o=>o.name=="Canvas").transform;
+            var bar=canvas.Find("ControlBar");
+            var start=bar.Find("SpinButton").GetComponent<Button>();
+            var reels=scene.GetRootGameObjects().SelectMany(o=>o.GetComponentsInChildren<ReelColumn>()).ToArray();
+            float originalScale=Time.timeScale;
+            try
+            {
+                Time.timeScale=8;
+                for(int round=0;round<100;round++)
+                {
+                    start.onClick.Invoke();
+                    if(round%3!=0)
+                    {
+                        yield return new WaitForSeconds(.013f+(round%11)*.031f);
+                        for(int repeat=0;repeat<1+round%7;repeat++)start.onClick.Invoke();
+                    }
+                    float deadline=Time.realtimeSinceStartup+4;
+                    while(start.GetComponentInChildren<Text>().text.Contains("STOP")&&Time.realtimeSinceStartup<deadline)yield return null;
+                    Assert.AreEqual("開始\nSTART",start.GetComponentInChildren<Text>().text,$"Round {round}");
+                    Assert.That(canvas.Find("StateMeter/Value").GetComponent<Text>().text,Is.EqualTo("WIN").Or.EqualTo("NO WIN"));
+                    foreach(var reel in reels)
+                    {
+                        Assert.IsTrue(reel.IsIdle,$"Round {round}");
+                        var symbols=reel.GetVisibleSymbols();
+                        for(int row=0;row<4;row++)Assert.AreEqual(ReelCell.GetFruitSprite(symbols[row]),reel.GetVisibleIcon(row).sprite);
+                    }
+                }
+            }
+            finally {Time.timeScale=originalScale;}
+        }
+        [UnityTest] public IEnumerator ErrorStateCannotKeepAnApparentlyRunningStopButton()
+        {
+            scene=EditorSceneManager.LoadSceneInPlayMode("Assets/Scenes/SlotCabinet.unity",new LoadSceneParameters(LoadSceneMode.Additive));
+            yield return null;
+            var canvas=scene.GetRootGameObjects().Single(o=>o.name=="Canvas").transform;
+            var view=scene.GetRootGameObjects().Single(o=>o.name=="SlotRoot").GetComponent<SlotPresentation>();
+            view.BeginSpin();view.ShowError();
+            Assert.AreEqual("暫停\nERROR",canvas.Find("ControlBar/SpinButton").GetComponentInChildren<Text>().text);
+            Assert.AreEqual("ERROR",canvas.Find("StateMeter/Value").GetComponent<Text>().text);
+        }
         [UnityTest] public IEnumerator CabinetMetersLightsAndPhysicalStartControlFollowTheRealRound()
         {
             scene=EditorSceneManager.LoadSceneInPlayMode("Assets/Scenes/SlotCabinet.unity",new LoadSceneParameters(LoadSceneMode.Additive));

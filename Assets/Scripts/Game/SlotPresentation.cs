@@ -118,6 +118,18 @@ namespace Slot.Game
             CabinetLights(win.LineId-1,true);
         }
         public void ShowError()
-        {summary.text="暫時無法開始";Details("轉輪或圖案資料不完整。\n請重新載入；若持續發生請回報。","轉輪資料不完整，請重新載入。");path.Show(1,5,false,false,Cyan);if(Cabinet)cabinetState.text="ERROR";}
+        {
+            spinning=false;showPreview=false;
+            summary.text="暫時無法開始";
+            Details("轉輪或圖案資料不完整。\n請重新載入；若持續發生請回報。","轉輪資料不完整，請重新載入。");
+            path.Show(1,5,false,false,Cyan);pathLabel.text="";
+            CabinetLights();
+            if(Cabinet)
+            {
+                cabinetState.text="ERROR";cabinetMatches.text="--";
+                cabinetSpinCaption.text="暫停\nERROR";
+                cabinetSpinFace.SetTone(new Color(.3f,.3f,.3f));
+            }
+        }
     }
 }

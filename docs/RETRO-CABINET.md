@@ -39,3 +39,7 @@
 - 比較頁 http://127.0.0.1:8121/ 預設復古機台，可切回四排功能版及更早三版；直接入口 http://127.0.0.1:8121/unity6-retro-v2/ 。只在127.0.0.1提供本機檢視。
 - D:/Codex/visualizations/2026-11-05/unity-slot-upgrade/保存retro-verification.json、retro-playmode.xml／log、retro-build-v1／v2.log、成品與retro-v2-final／win／rules.jpg。生成Burst Data與測試框架預設C槽XML已移入同一D槽資料夾。
 - 原SlotPresentation.unity及原Unity2022專案未修改。這輪未push、未發布作品集；使用者最終外觀接受、獨立Chrome/Edge與實體手機驗收仍待進行。
+
+## 使用者實操回報後修正
+
+v2後續出現停輪疊格／缺格，當時的9項測試未覆蓋半格取整邊界。已保留現場並補上可重現的回歸，改為整軸共用對齊；修正後12項PlayMode（含100輪實際場景回歸）通過。新候選為unity6-retro-v3，v2僅保留為歷史成品。見[停輪缺格修正](BRAKE-GRID-FIX.md)。
