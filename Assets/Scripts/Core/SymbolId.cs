@@ -1,6 +1,6 @@
 namespace Slot.Core
 {
-    /// <summary>水果機符號 ID。8 = Wild（百搭），9/10 為高賠符號（不接受 Wild 替代）。</summary>
+    /// <summary>水果機符號 ID。8 = Wild（百搭），9/10 為特殊圖案（不接受 Wild 替代）。</summary>
     public enum SymbolId
     {
         None = 0,

@@ -42,6 +42,7 @@ namespace Slot.Game
         private float[] phaseFromY;
         private float[] phaseToY;
         private float[] finalY;
+        private readonly float[] scrollY = new float[6];
 
         /// <summary>
         /// Runtime 重建 icons 引用。editor 建構時由 Init() 填入，但 Image[] 非序列化欄位
@@ -58,6 +59,16 @@ namespace Slot.Game
             }
             icons = list.ToArray();
             ids = new SymbolId[icons.Length];
+        }
+
+        public bool IsConfigured
+        {
+            get
+            {
+                if (icons == null || ids == null || icons.Length != 6 || ids.Length != 6) return false;
+                foreach (var icon in icons) if (icon == null) return false;
+                return true;
+            }
         }
 
         public bool IsScrolling => state != ReelState.Idle;
@@ -85,6 +96,8 @@ namespace Slot.Game
         /// </summary>
         public SymbolId[] GetVisibleSymbols()
         {
+            if (!IsConfigured) throw new System.InvalidOperationException("Reel is missing one or more icons.");
+            var used = new bool[icons.Length];
             var r = new SymbolId[Rows];
             for (int row = 0; row < Rows; row++)
             {
@@ -95,7 +108,10 @@ namespace Slot.Game
                     float d = Mathf.Abs(icons[i].rectTransform.anchoredPosition.y - SlotY[row]);
                     if (d < bd) { bd = d; best = i; }
                 }
-                r[row] = best >= 0 ? ids[best] : (SymbolId)1;
+                if (best < 0 || bd > 0.1f || used[best] || ids[best] < SymbolId.S1 || ids[best] > SymbolId.S10)
+                    throw new System.InvalidOperationException("Reel has no unique settled symbol at every visible cell.");
+                used[best] = true;
+                r[row] = ids[best];
             }
             return r;
         }
@@ -123,15 +139,16 @@ namespace Slot.Game
             phaseToY = new float[icons.Length];
             finalY = new float[icons.Length];
 
+            // Resolve one stop displacement for the whole strip. Rounding every icon
+            // separately collapses neighboring cells at midpoint-to-even ties.
+            float anchorY = icons[0].rectTransform.anchoredPosition.y;
+            float targetY = GridTop - Mathf.Round((GridTop - anchorY) / CellH) * CellH;
+            if (Mathf.Abs(anchorY - targetY) < 2f) targetY -= CellH;
             for (int i = 0; i < icons.Length; i++)
             {
                 float y = icons[i].rectTransform.anchoredPosition.y;
-                // ✅ 最近格點（Round，不再強制多滑 60px）→ 需要時自然產生「向上回彈」
-                float k = Mathf.Round((GridTop - y) / CellH);
-                float target = GridTop - k * CellH;
-                // 已正好踩在格點上（距離≈0）：再多滑一格，避免看起來像瞬停
-                if (Mathf.Abs(y - target) < 2f) { k += 1f; target = GridTop - k * CellH; }
-                finalY[i] = target;
+                float cellsFromAnchor = Mathf.Round((y - anchorY) / CellH);
+                finalY[i] = targetY + cellsFromAnchor * CellH;
             }
 
             StartCarryPhase();
@@ -143,20 +160,16 @@ namespace Slot.Game
         {
             brakePhase = BrakePhase.Carry;
             brakeT = 0f;
+            float anchorY = icons[0].rectTransform.anchoredPosition.y;
+            float distance = anchorY - finalY[0];
+            float carryDelta = distance >= minCarry
+                ? finalY[0] - Mathf.Min(overshoot, Mathf.Max(6f, distance - 8f)) - anchorY
+                : -18f;
             for (int i = 0; i < icons.Length; i++)
             {
                 float y = icons[i].rectTransform.anchoredPosition.y;
-                float d = y - finalY[i];   // >0：目標在下方；<0：目標在上方（需回彈）
                 phaseFromY[i] = y;
-                if (d >= minCarry)
-                {
-                    float ov = Mathf.Min(overshoot, Mathf.Max(6f, d - 8f));
-                    phaseToY[i] = finalY[i] - ov;      // 微微滑過頭
-                }
-                else
-                {
-                    phaseToY[i] = y - 18f;             // 慣性再下滑一點
-                }
+                phaseToY[i] = y + carryDelta;
             }
         }
 
@@ -173,7 +186,20 @@ namespace Slot.Game
         }
 
         /// <summary>取得可視列 icon（供取位）。</summary>
-        public Image GetVisibleIcon(int row) => icons[row + 1];
+        public Image GetVisibleIcon(int row)
+        {
+            if (row < 0 || row >= Rows) throw new System.ArgumentOutOfRangeException(nameof(row));
+            if (!IsConfigured) throw new System.InvalidOperationException("Reel icons are incomplete.");
+            Image nearest = null;
+            float distance = float.MaxValue;
+            foreach (var icon in icons)
+            {
+                float current = Mathf.Abs(icon.rectTransform.anchoredPosition.y - SlotY[row]);
+                if (current < distance) { distance = current; nearest = icon; }
+            }
+            if (distance > .1f) throw new System.InvalidOperationException("Reel is not settled on its grid.");
+            return nearest;
+        }
 
         private void AssignSymbol(int i, SymbolId s)
         {
@@ -188,17 +214,23 @@ namespace Slot.Game
 
             if (state == ReelState.Scrolling)
             {
-                float dy = speed * dt;
+                float anchorY = icons[0].rectTransform.anchoredPosition.y;
+                float nextAnchor = anchorY - speed * dt;
+                // Derive every position from one phase; do not accumulate separate
+                // floating-point drift in six independently moving icons.
                 for (int i = 0; i < icons.Length; i++)
                 {
+                    float cellOffset = Mathf.Round((icons[i].rectTransform.anchoredPosition.y - anchorY) / CellH);
+                    scrollY[i] = nextAnchor + cellOffset * CellH;
+                }
+                for (int i = 0; i < icons.Length; i++)
+                {
+                    float y = scrollY[i];
+                    bool wrapped = y < WrapY || y >= WrapY + SpanY;
+                    while (y < WrapY) y += SpanY;
+                    while (y >= WrapY + SpanY) y -= SpanY;
+                    if (wrapped) AssignSymbol(i, (SymbolId)Random.Range(1, 11));
                     var rt = icons[i].rectTransform;
-                    float y = rt.anchoredPosition.y - dy;
-                    if (y < WrapY)
-                    {
-                        y += SpanY;
-                        // 迴帶（在遮罩外）＝換上新的隨機符號（原始 Lua 行為）
-                        AssignSymbol(i, (SymbolId)Random.Range(1, 11));
-                    }
                     rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, y);
                 }
             }
@@ -223,7 +255,10 @@ namespace Slot.Game
                         for (int i = 0; i < icons.Length; i++)
                         {
                             var rt = icons[i].rectTransform;
-                            rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, finalY[i]);
+                            float y = finalY[i];
+                            while (y < WrapY) y += SpanY;
+                            while (y >= WrapY + SpanY) y -= SpanY;
+                            rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, y);
                         }
                         state = ReelState.Idle;
                     }

@@ -1,0 +1,17 @@
+{
+  "name": "Slot.PlayTests",
+  "references": [
+    "Slot.Core",
+    "Slot.Game",
+    "Unity.ugui"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "autoReferenced": false,
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ]
+}

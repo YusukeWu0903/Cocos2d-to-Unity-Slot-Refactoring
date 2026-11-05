@@ -10,7 +10,12 @@ namespace Slot.Tests
     /// </summary>
     public class PaylineEvaluatorTest
     {
-        static SymbolId[] Empty() => new SymbolId[21];
+        static SymbolId[] Empty()
+        {
+            var cells = new SymbolId[21];
+            for (int i = 1; i <= 20; i++) cells[i] = SymbolId.S10;
+            return cells;
+        }
 
         // ============ 基礎：橫排三條 ============
 
@@ -51,31 +56,31 @@ namespace Slot.Tests
         // ============ 斜線 / 折線 ============
 
         [Test]
-        public void DiagonalV_Line4_Wins5_AllSame()
+        public void DiagonalV_Line5_Wins5_AllSame()
         {
             // Line4 = {3,6,9,14,19} (V形，row 高-中-低-中-高)
             var cells = Empty();
             foreach (int p in new[] { 3, 6, 9, 14, 19 }) cells[p] = SymbolId.S4;
-            var r = EvaluateLine(4, cells);
-            Assert.IsTrue(r.IsWin);
-            Assert.AreEqual(5, r.Count);
-        }
-
-        [Test]
-        public void HutShape_Line5_Wins5_AllSame()
-        {
-            // Line5 = {1,6,11,14,17} (帽/山形)
-            var cells = Empty();
-            foreach (int p in new[] { 1, 6, 11, 14, 17 }) cells[p] = SymbolId.S5;
             var r = EvaluateLine(5, cells);
             Assert.IsTrue(r.IsWin);
             Assert.AreEqual(5, r.Count);
         }
 
-        // ============ 30 條線全部可達 5 連 ============
+        [Test]
+        public void HutShape_Line6_Wins5_AllSame()
+        {
+            // Line5 = {1,6,11,14,17} (帽/山形)
+            var cells = Empty();
+            foreach (int p in new[] { 1, 6, 11, 14, 17 }) cells[p] = SymbolId.S5;
+            var r = EvaluateLine(6, cells);
+            Assert.IsTrue(r.IsWin);
+            Assert.AreEqual(5, r.Count);
+        }
+
+        // ============ 40 條線全部可達 5 連 ============
 
         [Test]
-        public void All30Lines_CanReach5_AllSame()
+        public void All40Lines_CanReach5_AllSame()
         {
             foreach (var line in SlotPaylines.All)
             {
@@ -134,18 +139,17 @@ namespace Slot.Tests
         {
             var cells = Empty();
             cells[1] = cells[5] = cells[9] = cells[13] = cells[17] = SymbolId.S1;
-            var results = EvaluateAll(cells, 30);
+            var results = EvaluateAll(cells, 40);
             Assert.IsTrue(ContainsLine(results, 3));
         }
 
         [Test]
-        public void ActiveLines_Limit_Respected()
+        public void ActiveLines_Limit_ExcludesDisabledWinningLine()
         {
-            // 只有行1 命中，但只允許檢查前2條線 → 不應命中
             var cells = Empty();
-            cells[2] = cells[6] = cells[10] = cells[14] = cells[18] = SymbolId.S1; // Line1 命中
-            var results = EvaluateAll(cells, 5); // 檢查前5條，Line1 在內 → 命中
-            Assert.IsTrue(ContainsLine(results, 1));
+            foreach (int cell in SlotPaylines.All[2].Cells) cells[cell] = SymbolId.S1;
+            Assert.IsFalse(ContainsLine(EvaluateAll(cells, 2), 3));
+            Assert.IsTrue(ContainsLine(EvaluateAll(cells, 3), 3));
         }
 
         // ============ Helpers ============

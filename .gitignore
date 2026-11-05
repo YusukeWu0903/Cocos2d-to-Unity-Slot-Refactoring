@@ -40,3 +40,9 @@ sysinfo.txt
 
 # Logs
 *.log
+# Local Unity performance-test build sidecars
+/Assets/Resources/PerformanceTestRunInfo.json*
+/Assets/Resources/PerformanceTestRunSettings.json*
+
+# Local Vercel project links and environment state
+.vercel/
